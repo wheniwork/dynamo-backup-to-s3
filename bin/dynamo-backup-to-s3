@@ -31,6 +31,7 @@ program
     .option('--aws-region <region>', 'AWS region. Will use AWS_DEFAULT_REGION env var if --aws-region not set')
     .option('--strip-fields <list>', 'exclue these fields in the bakup', list)
     .option('-g, --global-table', 'specify if global table, will strip aws fields from backup')
+    .option('-o, --stream-to-stdout', 'stream items to stdout and not to s3')
     .parse(process.argv);
 
 // run program
@@ -50,13 +51,14 @@ var dynamoBackup = new DynamoBackup({
     base64Binary: program.base64EncodeBinary,
     stripFields: program.stripFields,
     globalTable: program.globalTable,
+    streamToStdout: program.streamToStdout,
     saveDataPipelineFormat: program.saveDataPipelineFormat
 });
 
 
 dynamoBackup.on('error', function(data) {
-    console.log('Error backing up ' + data.tableName);
-    console.log(data.error);
+    console.error('Error backing up ' + data.tableName);
+    console.error(data.error);
     if (program.stopOnFailure) {
         process.exit(-1);
     }
@@ -64,21 +66,21 @@ dynamoBackup.on('error', function(data) {
 
 dynamoBackup.on('start-backup', function(tableName) {
     runTimes[tableName] = moment();
-    console.log('Starting to copy table ' + tableName);
+    console.error('Starting to copy table ' + tableName);
 });
 
 dynamoBackup.on('end-backup', function(tableName) {
     var endTime = moment();
     var startTime = runTimes[tableName];
-    console.log('Done copying table ' + tableName + '. Took ' + endTime.diff(startTime, 'minutes', true).toFixed(2) + ' minutes');
+    console.error('Done copying table ' + tableName + '. Took ' + endTime.diff(startTime, 'minutes', true).toFixed(2) + ' minutes');
 });
 
 dynamoBackup.backupAllTables(function(err) {
     if(err){
-        console.log("Error "+ err);
+        console.error("Error "+ err);
     }
     else{
-      console.log('Finished backing up DynamoDB');
+      console.error('Finished backing up DynamoDB');
     }
     process.exit(0);
 });
